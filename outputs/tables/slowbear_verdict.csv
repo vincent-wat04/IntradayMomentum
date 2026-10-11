@@ -1,0 +1,9 @@
+rule,a,b,c,d,e,verdict
+H1 深蓝hi=1,True,False,False,True,True,False
+H2 趋势200,True,True,True,True,True,True
+H3 动量12-1,True,True,True,True,True,True
+H4 趋势门控杠杆,False,True,False,True,False,False
+H5 回撤刹车,True,True,False,False,True,False
+H6 绝对波动目标,False,True,True,True,False,False
+H7 曲线倒挂,False,False,False,True,False,False
+H8 H2·H3·H5取小,True,True,False,False,True,False

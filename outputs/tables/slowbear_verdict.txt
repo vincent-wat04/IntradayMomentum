@@ -1,0 +1,9 @@
+方案                   (a)   (b)   (c)   (d)   (e)   总判定    各项细节
+H1 深蓝hi=1           True False False  True  True   否决       (a)(b)同时成立的市场数=3/4
+H2 趋势200            True  True  True  True  True   通过       (a)(b)同时成立的市场数=4/4
+H3 动量12-1           True  True  True  True  True   通过       (a)(b)同时成立的市场数=4/4
+H4 趋势门控杠杆          False  True False  True False   否决       (a)(b)同时成立的市场数=1/4
+H5 回撤刹车             True  True False False  True   否决       (a)(b)同时成立的市场数=3/4
+H6 绝对波动目标          False  True  True  True False   否决       (a)(b)同时成立的市场数=1/4
+H7 曲线倒挂            False False False  True False   否决       (a)(b)同时成立的市场数=0/4
+H8 H2·H3·H5取小       True  True False False  True   否决       (a)(b)同时成立的市场数=3/4

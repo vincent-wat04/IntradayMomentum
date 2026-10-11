@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+data/raw/
+data/processed/
+results/
+.ipynb_checkpoints/
+studies/assets/
+studies/outputs/
+.secrets/
+ssh.json
