@@ -282,3 +282,9 @@ GEX 一共试了 **8 种用法，全部否决**。唯一复现成功的是"GEX �
 **追加(2026-10-12,第十二批)**:`docs/PROPOSAL_unified_sizing.md` + `docs/REPORT_unified_sizing.md`(统一仓位模型:两腿 sigmoid 参数化策略、分类器诊断与利润曲线、Reactive Volatility Model 复现)。脚本 `studies/unified_sizing_study.py`、`unified_sizing_posthoc.py`;此前一批 `docs/PROPOSAL_liquidity_and_inverse.md`、`studies/liquidity_inverse_study.py` 一并提交。
 
 **追加(2026-10-13,第十三批)**:`docs/PROPOSAL_letf_rebalance.md`(统一仓位叠加 SOTA;杠杆 ETF 收盘再平衡流的 alpha/执行检验)。脚本 `studies/sota_unified_stack.py`、`letf_rebalance_study.py`、`letf_posthoc.py`;ProShares AUM 缓存 `ETFT_DATA/raw/letf/`。
+
+## Tearsheet v3（2026-10）
+`studies/tearsheet_v3.py` → `outputs/figs/tearsheet_v3.png`, `outputs/tables/tearsheet_v3_{metrics,periods}.csv`。
+① = RV21[0.5,1.5]×SMA200 + v3 Sleeve；② = VT[FFA-SD, cap 1.5]×SMA200 + v3 Sleeve。v3 Sleeve = SOTA（FOMC ≥14:30、跳过 FFA-P 振幅最低 20%、CPI 缺口回补 1×、排除周一）+ 统一仓位（PPP、7 个 CLEAN 特征、按对应组合 walk-forward 重训、2021 起生效）+ 15:40 平仓。
+全样本 2019-01~2026-10：① Sharpe 2.02 / CAGR 49.2% / MDD −15.5%；② 2.07 / 49.6% / −18.6%；现用组合 1.56 / 39.3% / −19.7%。
+注意：除统一仓位为 walk-forward 外，各组件均为 2019–2026 上事后选择；各增量置信区间含 0；15:40 平仓按 MOC 同等成本计，优势偏高估；2022 年统一仓位与提前平仓均为负贡献。
