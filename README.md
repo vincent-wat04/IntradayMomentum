@@ -249,3 +249,30 @@ GEX 一共试了 **8 种用法，全部否决**。唯一复现成功的是"GEX �
 * `audit_factors.py` 需要 `data/xs/` 横截面数据（108MB，未入库）。
 * A 股横截面与美股 5 分钟数据受 moomoo 的 300 标的/7 天额度限制，未跑完。
 * 微观结构（真实价差、OFI）**尚未实测** —— `scripts/micro_recorder.py` 没部署成。
+
+
+## 2026-10 分层研究(新增,保留全部旧记录)
+| 文档 | 内容 |
+|---|---|
+| `docs/ARCHITECTURE_layers.md` | 分层架构(L0 择时/regime、L1 RV、L2 Sleeve、L3 日内回转、L4 信息层)+ **证据地图与叠加表** |
+| `docs/PROPOSAL_regime_layer.md` | L0 宏观/市场环境 regime 择时(两轮,42 配置;信用趋势 A2_C 为弱证据) |
+| `docs/PROPOSAL_sleeve_anatomy.md` · `PROPOSAL_trend_rv_sleeve.md` | Sleeve 解剖;RV[0,1]/[0,1.5]/[0,2] 与趋势叠加 Sleeve |
+| `docs/PROPOSAL_lowvol_avoidance.md` · `PROPOSAL_trade_filter.md` | 避开事后低波日(三轮)与逐笔入场过滤 |
+| `docs/PROPOSAL_intraday_reversion_v2.md` | 分钟线日内回转(两轮,含文献 H1–H5) |
+| `docs/PROPOSAL_llm_news_vol.md` | LLM 新闻→波动(三轮,含结构化事件抽取) |
+
+**追加(2026-10-11,第三批)**:`docs/PROPOSAL_intraday_tech_indicators.md`(32 个经典技术指标 × QQQ 5/15 分钟,256 配置,无证据)· `docs/PROPOSAL_regime_layer.md` 第三轮(23 子信号二值库 + 行业龙头/落后 + EW/DYN 赋权,累计 60 配置,无证据)。脚本 `studies/tech_indicators.py`、`intraday_tech_study.py`、`regime_round3_study.py`。
+
+**追加(2026-10-12,第四批)**:`docs/PROPOSAL_intraday_t_overlay.md`(事件驱动做T 倒T/正T,64 配置,无证据)· `docs/PROPOSAL_news_multisource.md`(多源新闻 → 日内波动,2019–2023,无证据;LLM 阶段待密钥)。脚本 `studies/tech_overlay_study.py`、`news_ms.py`、`lowvol_round4_news_study.py`、`news_ms_posthoc.py`。数据缓存 `ETFT_DATA/raw/news_ms/`(不入库)。
+
+**追加(2026-10-12,第五批)**:`docs/PROPOSAL_vol_monetization.md`(波动模型能否变现:无)· `docs/PROPOSAL_fomc_day.md`(FOMC 日与时点偏移:线索)· `docs/PROPOSAL_credit_deepdive.md`(A2_C 细究 + 1986–2003 独立样本:弱,风险保险)。脚本 `studies/vol_monetization_study.py`、`vol_monet_m1b.py`、`fomc_day_study.py`、`credit_deepdive_study.py`。FRED 现已可达(缓存 `ETFT_DATA/raw/fred/`),长历史代理 `raw/regime/long_history.parquet`。
+
+**追加(2026-10-12,第六批)**:`docs/PROPOSAL_disp_prediction.md`(位移/趋势效率预测 + 分阶段入场 + 分布面板:无证据)· `docs/PROPOSAL_iv_deepdive.md`(与隐含波动对赌:未达可交易)· `docs/PROPOSAL_macro_events.md`(CPI/NFP/零售/ISM + 新闻方向:无证据,CPI 缺口回补为事后线索)。脚本 `studies/disp_pred_study.py`、`iv_deepdive_study.py`、`macro_events_study.py`。数据缓存 `ETFT_DATA/raw/econ_cal/`(公开 GitHub 经济日历,含实际/预期/前值)。
+
+**追加(2026-10-12,第七批)**:`docs/PROPOSAL_ffa_vol.md`(FFA 融合滤波 + 6 个基准:统计/仓位/避开低振幅日/择时)· `docs/PROPOSAL_event_delay.md`(事件日不入场/推迟全表 + CPI 回补 overlay 利润,事后)。脚本 `studies/ffa_vol_study.py`、`ffa_skip_posthoc.py`、`event_delay_study.py`。
+
+**追加(2026-10-12,第八批)**:`docs/PROPOSAL_sota_stack.md`(避开低振幅日 13 模型赛马、反向仓位倾斜、Sleeve SOTA 组装、B&H 腿 78 配置跨周期 + 2019+ 叠加 Sleeve)。脚本 `studies/sota_stack_study.py`、`sota_posthoc.py`。
+
+**追加(2026-10-12,第九批)**:新 Sleeve(FOMC≥14:30 + CPI 回补 + FFA-P 跳过 q=0.2)vs 实盘的 dev/test/全周期 × B&H 腿对比,见 `docs/PROPOSAL_sota_stack.md` 末节;脚本 `studies/sleeve_v2_compare.py`。
+
+**追加(2026-10-12,第十批)**:`studies/tearsheet_v2.py` → `outputs/figs/tearsheet_v2.png`(上一版 4 条线 + 新 Sleeve + ① RV21+SMA200+新Sleeve + ② VT[FFA-SD]+SMA200+新Sleeve),指标表 `outputs/tables/tearsheet_v2_{metrics,periods}.csv`。`docs/FORWARD_LIVE_v2.md` = 前向部署与观察规格(分级、精确规则、日志字段、冻结的否决标准)。周一一致性修正见 `docs/PROPOSAL_sota_stack.md` 偏离记录 4。
