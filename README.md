@@ -276,3 +276,7 @@ GEX 一共试了 **8 种用法，全部否决**。唯一复现成功的是"GEX �
 **追加(2026-10-12,第九批)**:新 Sleeve(FOMC≥14:30 + CPI 回补 + FFA-P 跳过 q=0.2)vs 实盘的 dev/test/全周期 × B&H 腿对比,见 `docs/PROPOSAL_sota_stack.md` 末节;脚本 `studies/sleeve_v2_compare.py`。
 
 **追加(2026-10-12,第十批)**:`studies/tearsheet_v2.py` → `outputs/figs/tearsheet_v2.png`(上一版 4 条线 + 新 Sleeve + ① RV21+SMA200+新Sleeve + ② VT[FFA-SD]+SMA200+新Sleeve),指标表 `outputs/tables/tearsheet_v2_{metrics,periods}.csv`。`docs/FORWARD_LIVE_v2.md` = 前向部署与观察规格(分级、精确规则、日志字段、冻结的否决标准)。周一一致性修正见 `docs/PROPOSAL_sota_stack.md` 偏离记录 4。
+
+**追加(2026-10-12,第十一批)**:`docs/PROPOSAL_liquidity_and_inverse.md`(流动性/换手的成本真实性+容量+信号检验;买 SQQQ vs 空 TQQQ 的融券盈亏平衡率;恐慌时仓位不对称)。脚本 `studies/liquidity_inverse_study.py`。三项逐日精确校验均 0.000000bp。
+
+**追加(2026-10-12,第十二批)**:`docs/PROPOSAL_unified_sizing.md` + `docs/REPORT_unified_sizing.md`(统一仓位模型:两腿 sigmoid 参数化策略、分类器诊断与利润曲线、Reactive Volatility Model 复现)。脚本 `studies/unified_sizing_study.py`、`unified_sizing_posthoc.py`;此前一批 `docs/PROPOSAL_liquidity_and_inverse.md`、`studies/liquidity_inverse_study.py` 一并提交。
