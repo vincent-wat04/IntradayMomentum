@@ -280,3 +280,5 @@ GEX 一共试了 **8 种用法，全部否决**。唯一复现成功的是"GEX �
 **追加(2026-10-12,第十一批)**:`docs/PROPOSAL_liquidity_and_inverse.md`(流动性/换手的成本真实性+容量+信号检验;买 SQQQ vs 空 TQQQ 的融券盈亏平衡率;恐慌时仓位不对称)。脚本 `studies/liquidity_inverse_study.py`。三项逐日精确校验均 0.000000bp。
 
 **追加(2026-10-12,第十二批)**:`docs/PROPOSAL_unified_sizing.md` + `docs/REPORT_unified_sizing.md`(统一仓位模型:两腿 sigmoid 参数化策略、分类器诊断与利润曲线、Reactive Volatility Model 复现)。脚本 `studies/unified_sizing_study.py`、`unified_sizing_posthoc.py`;此前一批 `docs/PROPOSAL_liquidity_and_inverse.md`、`studies/liquidity_inverse_study.py` 一并提交。
+
+**追加(2026-10-13,第十三批)**:`docs/PROPOSAL_letf_rebalance.md`(统一仓位叠加 SOTA;杠杆 ETF 收盘再平衡流的 alpha/执行检验)。脚本 `studies/sota_unified_stack.py`、`letf_rebalance_study.py`、`letf_posthoc.py`;ProShares AUM 缓存 `ETFT_DATA/raw/letf/`。
