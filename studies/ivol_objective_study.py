@@ -87,22 +87,24 @@ def qv_of(Q, kl, ks):
 
 
 # ============================================================ 目标函数
-def fit_obj(Z, Lb, Sb, Eb, Qd, lam, obj):
+def fit_obj(Z, Lb, Sb, Eb, Qd, lam, obj, link="sig"):
     """sigmoid PPP;obj ∈ {'mv','semi','qv'}。返回 (预测函数, 打分函数)。Qd: dict of arrays(仅 qv 用)。"""
     n, p1 = Z.shape; B = Lb + Sb + Eb
     if obj == "mv": gam = B.mean() / B.var()
     elif obj == "semi": gam = B.mean() / np.mean(np.minimum(B, 0) ** 2)
+    elif obj == "lpm": tau = float(np.quantile(B, 0.10)); gam = B.mean() / np.mean(np.minimum(B - tau, 0) ** 2)
     elif obj == "legsemi": gam = B.mean() / (Eb.var() + np.mean(np.minimum(Lb, 0) ** 2) + np.mean(np.minimum(Sb, 0) ** 2))
     else: gam = B.mean() / np.mean(Qd["cc"] + Qd["LL"] + Qd["SS"] + 2 * Qd["EL"] + 2 * Qd["ES"] + 2 * Qd["LS"])
     def util(R, kl=None, ks=None, Qx=None):
         if obj == "mv": return R.mean() - 0.5 * gam * R.var()
         if obj == "semi": return R.mean() - 0.5 * gam * np.mean(np.minimum(R, 0) ** 2)
+        if obj == "lpm": return R.mean() - 0.5 * gam * np.mean(np.minimum(R - tau, 0) ** 2)
         if obj == "legsemi":
             return R.mean() - 0.5 * gam * (Qx["E"].var() + np.mean(np.minimum(kl * Qx["L"], 0) ** 2) + np.mean(np.minimum(ks * Qx["S"], 0) ** 2))
         q = Qx["cc"] + kl ** 2 * Qx["LL"] + ks ** 2 * Qx["SS"] + 2 * kl * Qx["EL"] + 2 * ks * Qx["ES"] + 2 * kl * ks * Qx["LS"]
         return R.mean() - 0.5 * gam * q.mean()
     def f(th):
-        kl, dl = M.link(Z @ th[:p1], "sig"); ks, ds = M.link(Z @ th[p1:], "sig")
+        kl, dl = M.link(Z @ th[:p1], link); ks, ds = M.link(Z @ th[p1:], link)
         R = kl * Lb + ks * Sb + Eb; dRl = (Lb * dl)[:, None] * Z; dRs = (Sb * ds)[:, None] * Z
         if obj == "mv":
             Rc = R - R.mean(); gl = dRl.mean(0) - gam * (Rc[:, None] * dRl).mean(0); gs = dRs.mean(0) - gam * (Rc[:, None] * dRs).mean(0); risk = R.var()
@@ -110,6 +112,8 @@ def fit_obj(Z, Lb, Sb, Eb, Qd, lam, obj):
             nl, ns = np.minimum(Lb, 0), np.minimum(Sb, 0)                 # k>0,故 min(k·L,0) = k·min(L,0)
             gl = dRl.mean(0) - gam * ((kl * nl * nl * dl)[:, None] * Z).mean(0); gs = dRs.mean(0) - gam * ((ks * ns * ns * ds)[:, None] * Z).mean(0)
             risk = Eb.var() + np.mean((kl * nl) ** 2) + np.mean((ks * ns) ** 2)
+        elif obj == "lpm":
+            m_ = np.minimum(R - tau, 0); gl = dRl.mean(0) - gam * (m_[:, None] * dRl).mean(0); gs = dRs.mean(0) - gam * (m_[:, None] * dRs).mean(0); risk = np.mean(m_ ** 2)
         elif obj == "semi":
             m_ = np.minimum(R, 0); gl = dRl.mean(0) - gam * (m_[:, None] * dRl).mean(0); gs = dRs.mean(0) - gam * (m_[:, None] * dRs).mean(0); risk = np.mean(m_ ** 2)
         else:
@@ -119,11 +123,11 @@ def fit_obj(Z, Lb, Sb, Eb, Qd, lam, obj):
         g = np.r_[gl, gs] - 2 * lam * th
         return -(R.mean() - 0.5 * gam * risk - lam * np.sum(th ** 2)), -g
     r = minimize(f, np.zeros(2 * p1), jac=True, method="L-BFGS-B", options={"maxiter": 500}); th = r.x.reshape(2, p1)
-    pred = lambda Zt: (M.link(Zt @ th[0], "sig")[0], M.link(Zt @ th[1], "sig")[0])
+    pred = lambda Zt: (M.link(Zt @ th[0], link)[0], M.link(Zt @ th[1], link)[0])
     return pred, util
 
 
-def wf_obj(X, feats, Lb, Sb, Eb, Q, sel, days, obj):
+def wf_obj(X, feats, Lb, Sb, Eb, Q, sel, days, obj, link="sig"):
     yrs = days.year; out = pd.DataFrame(np.nan, index=days, columns=["kl", "ks"]); lam_sel = {}
     Qa = {c: Q[c].to_numpy() for c in Q.columns}; sub = lambda idx: {c: v[idx] for c, v in Qa.items()}
     def design(idx, ref):
@@ -136,12 +140,12 @@ def wf_obj(X, feats, Lb, Sb, Eb, Q, sel, days, obj):
             for hy in sorted(set(yrs[tr])):
                 a_, h_ = tr & (yrs != hy), tr & (yrs == hy)
                 if a_.sum() < 150 or h_.sum() < 50: continue
-                pr, util = fit_obj(design(a_, a_), Lb[a_], Sb[a_], Eb[a_], sub(a_), lam, obj); kl, ks = pr(design(h_, a_))
+                pr, util = fit_obj(design(a_, a_), Lb[a_], Sb[a_], Eb[a_], sub(a_), lam, obj, link); kl, ks = pr(design(h_, a_))
                 one = np.ones(int(h_.sum()))
                 sc.append(util(kl * Lb[h_] + ks * Sb[h_] + Eb[h_], kl, ks, sub(h_)) - util(Lb[h_] + Sb[h_] + Eb[h_], one, one, sub(h_)))
             cv[lam] = np.mean(sc) if sc else -np.inf
         lam = max(cv, key=cv.get); lam_sel[yr] = lam
-        pr, _ = fit_obj(design(tr, tr), Lb[tr], Sb[tr], Eb[tr], sub(tr), lam, obj); out.loc[te, "kl"], out.loc[te, "ks"] = pr(design(te, tr))
+        pr, _ = fit_obj(design(tr, tr), Lb[tr], Sb[tr], Eb[tr], sub(tr), lam, obj, link); out.loc[te, "kl"], out.loc[te, "ks"] = pr(design(te, tr))
     return out, lam_sel
 
 
