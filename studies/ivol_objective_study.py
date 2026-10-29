@@ -92,10 +92,13 @@ def fit_obj(Z, Lb, Sb, Eb, Qd, lam, obj):
     n, p1 = Z.shape; B = Lb + Sb + Eb
     if obj == "mv": gam = B.mean() / B.var()
     elif obj == "semi": gam = B.mean() / np.mean(np.minimum(B, 0) ** 2)
+    elif obj == "legsemi": gam = B.mean() / (Eb.var() + np.mean(np.minimum(Lb, 0) ** 2) + np.mean(np.minimum(Sb, 0) ** 2))
     else: gam = B.mean() / np.mean(Qd["cc"] + Qd["LL"] + Qd["SS"] + 2 * Qd["EL"] + 2 * Qd["ES"] + 2 * Qd["LS"])
     def util(R, kl=None, ks=None, Qx=None):
         if obj == "mv": return R.mean() - 0.5 * gam * R.var()
         if obj == "semi": return R.mean() - 0.5 * gam * np.mean(np.minimum(R, 0) ** 2)
+        if obj == "legsemi":
+            return R.mean() - 0.5 * gam * (Qx["E"].var() + np.mean(np.minimum(kl * Qx["L"], 0) ** 2) + np.mean(np.minimum(ks * Qx["S"], 0) ** 2))
         q = Qx["cc"] + kl ** 2 * Qx["LL"] + ks ** 2 * Qx["SS"] + 2 * kl * Qx["EL"] + 2 * ks * Qx["ES"] + 2 * kl * ks * Qx["LS"]
         return R.mean() - 0.5 * gam * q.mean()
     def f(th):
@@ -103,6 +106,10 @@ def fit_obj(Z, Lb, Sb, Eb, Qd, lam, obj):
         R = kl * Lb + ks * Sb + Eb; dRl = (Lb * dl)[:, None] * Z; dRs = (Sb * ds)[:, None] * Z
         if obj == "mv":
             Rc = R - R.mean(); gl = dRl.mean(0) - gam * (Rc[:, None] * dRl).mean(0); gs = dRs.mean(0) - gam * (Rc[:, None] * dRs).mean(0); risk = R.var()
+        elif obj == "legsemi":
+            nl, ns = np.minimum(Lb, 0), np.minimum(Sb, 0)                 # k>0,故 min(k·L,0) = k·min(L,0)
+            gl = dRl.mean(0) - gam * ((kl * nl * nl * dl)[:, None] * Z).mean(0); gs = dRs.mean(0) - gam * ((ks * ns * ns * ds)[:, None] * Z).mean(0)
+            risk = Eb.var() + np.mean((kl * nl) ** 2) + np.mean((ks * ns) ** 2)
         elif obj == "semi":
             m_ = np.minimum(R, 0); gl = dRl.mean(0) - gam * (m_[:, None] * dRl).mean(0); gs = dRs.mean(0) - gam * (m_[:, None] * dRs).mean(0); risk = np.mean(m_ ** 2)
         else:
