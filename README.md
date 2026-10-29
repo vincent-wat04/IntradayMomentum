@@ -288,3 +288,15 @@ GEX 一共试了 **8 种用法，全部否决**。唯一复现成功的是"GEX �
 ① = RV21[0.5,1.5]×SMA200 + v3 Sleeve；② = VT[FFA-SD, cap 1.5]×SMA200 + v3 Sleeve。v3 Sleeve = SOTA（FOMC ≥14:30、跳过 FFA-P 振幅最低 20%、CPI 缺口回补 1×、排除周一）+ 统一仓位（PPP、7 个 CLEAN 特征、按对应组合 walk-forward 重训、2021 起生效）+ 15:40 平仓。
 全样本 2019-01~2026-10：① Sharpe 2.02 / CAGR 49.2% / MDD −15.5%；② 2.07 / 49.6% / −18.6%；现用组合 1.56 / 39.3% / −19.7%。
 注意：除统一仓位为 walk-forward 外，各组件均为 2019–2026 上事后选择；各增量置信区间含 0；15:40 平仓按 MOC 同等成本计，优势偏高估；2022 年统一仓位与提前平仓均为负贡献。
+
+## Tearsheet v4（2026-10，描述性）
+`studies/tearsheet_v4.py` → `outputs/figs/tearsheet_v4.png`, `outputs/tables/tearsheet_v4_{metrics,periods,yearly}.csv`。
+v4 Sleeve = v3 Sleeve + 入场带按"无成交量配合的波动"放宽（只放宽入场带，止损带不变）+ 仓位模型改为线性链接、特征加 `dur_rate`（10:00 前价格持续期事件率），均值–方差组合效用，按各自组合走步重训。
+本环境复现 v3：① dev/test/全 1.585/2.479/2.031（repo 1.587/2.461/2.022），差异来自公开源重建的日线/VIX（`data/MANIFEST_sandbox_2026-10.md5`）。
+| 组合 | dev 19–22 Sharpe | test 23–26 Sharpe / MDD | 全期 Sharpe / MDD |
+|---|---|---|---|
+| ① RV21+SMA200 + v3 Sleeve | 1.59 | 2.48 / −13.6% | 2.03 / −15.5% |
+| **① RV21+SMA200 + v4 Sleeve** | **1.67** | **2.59 / −11.8%** | **2.12 / −15.9%** |
+| ② VT[FFA-SD]+SMA200 + v3 Sleeve | 1.77 | 2.37 / −13.5% | 2.07 / −18.8% |
+| **② VT[FFA-SD]+SMA200 + v4 Sleeve** | **1.82** | **2.41 / −11.5%** | **2.11 / −15.7%** |
+注意：v4 的三项改动是在 2019–2026 上多轮挑选出来的（`docs/PROPOSAL_intraday_vol_entry_r3.md` §5–8），相对 v3 的组合 OOS ΔSR +0.145 [−0.12, +0.39]，未通过预注册判定；建议冻结系数做前向影子运行后再决定是否替换。
