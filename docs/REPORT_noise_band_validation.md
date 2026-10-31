@@ -86,13 +86,15 @@ q60-L60 是本轮唯一新增的 band 估计思路。它不是因为历史 Sharp
 - 390 根分钟 bar 的合成数据 smoke path；
 - point-in-time profile、coverage、continuation、HAC、stationary bootstrap 和 max-t 的运行检查。
 
-未执行真实市场数据实验。当前沙盒没有 `raw/min1/QQQ.csv`、`raw/min1/SPY.csv` 及其余约 1.2GB 原始数据，`ETFT_DATA` 也未设置。仓库只提交了 MD5 manifest 和聚合结果，没有逐日 pickle，无法从 CSV 汇总表反推出 coverage 或配对收益序列。
+canonical QQQ/v5 实验仍未运行。当前沙盒没有 manifest 对应的 `raw/min1/QQQ.csv` 及其余约 1.2GB 原始数据，也没有 moomoo OpenD、行情 API key、SSH 数据主机、release 或 artifact。
 
-运行命令：
+为推进验证，已使用独立公开 Alpaca SPY 分钟样本完成 2021–2024 的 calibration 和 standalone 30-phase 回测。详细数据 provenance、结果和限制见 `REPORT_noise_band_external_spy_2021_2024.md`。外部结果显示：q60-L60 的 60% coverage 校准成立，但策略共同样本 Sharpe 低于 current mean14×s3；q60×s3 降低约 9.6% 换手，但也降低均值和 Sharpe，不能升级。
+
+canonical 数据到位后的运行命令：
 
 ```bash
 export ETFT_DATA=/path/to/data
 python studies/noise_band_validation.py --section all --bootstrap 2000
 ```
 
-在真实数据输出产生前，不应声称 q60 改善了策略，也不应把当前 s3 判为失败。当前可支持的结论仅是：**s3 的历史点估计略正，但置信区间宽、左尾变差，尚未证实；原 band 还没有 noise-range 校准证据。**
+当前可支持的结论是：**在独立 SPY 样本上，q60 的 noise-range 定义更清楚，但当前 mean14×s3 的经济表现更好；canonical QQQ/PIT-corrected v5 仍需原始数据确认。**

@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 data/raw/
 data/processed/
+data_external/
 results/
 .ipynb_checkpoints/
 studies/assets/

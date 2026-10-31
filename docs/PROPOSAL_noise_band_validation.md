@@ -1,6 +1,6 @@
 # PROPOSAL — Noise Band 的统计含义、校准与策略增量
 
-状态：**历史诊断方案已冻结，尚未运行**
+状态：**历史诊断方案已冻结；外部 SPY 2021–2024 已运行，canonical QQQ/v5 待数据**
 分支：`research/noise-band-validation-2026-10`
 基准提交：`origin/research/crowding-vol-timing-2026-10@8a0f5b51c6cd68b613c713e109d339033978c3b4`
 冻结日：2026-10-31；冻结历史截至 **2026-10-30**，前向确认从冻结后的首个交易日 **2026-11-02** 起计。至少积累 252 个交易日后才作确认性判断。
@@ -157,7 +157,10 @@ python studies/noise_band_validation.py --section all --bootstrap 2000
 - `outputs/tables/noise_band_strategy.csv`
 - `outputs/tables/noise_band_inference.csv`
 - `outputs/tables/noise_band_strategy_daily.csv.gz`
+- `outputs/tables/noise_band_standalone_strategy.csv`
+- `outputs/tables/noise_band_standalone_inference.csv`
 - `outputs/tables/noise_band_experiment_metadata.json`
+- `outputs/tables/noise_band_experiment_metadata_<section>.json`
 
 ## 8. 文献依据
 

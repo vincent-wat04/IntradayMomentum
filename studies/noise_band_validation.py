@@ -14,6 +14,7 @@ confirmatory interpretation.
 Run from the repository root:
     python studies/noise_band_validation.py --section all
     python studies/noise_band_validation.py --section calibration
+    python studies/noise_band_validation.py --section standalone --symbols SPY --skip-md5
     python studies/noise_band_validation.py --smoke
 
 Raw data are not committed. Set ETFT_DATA as documented in data/README.md.
@@ -226,9 +227,9 @@ def _bounds(b: Bars, profile: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]
 
 def _periods(days: pd.DatetimeIndex, forward_start: pd.Timestamp) -> dict[str, np.ndarray]:
     return {
-        "legacy_dev_2019_2022": (days >= LEGACY_DEV[0]) & (days <= LEGACY_DEV[1]),
-        "legacy_test_2023_2026": (days >= LEGACY_TEST[0]) & (days <= LEGACY_TEST[1]),
-        "historical_2019_2026": (days >= LEGACY_DEV[0]) & (days <= HISTORICAL_END),
+        "legacy_dev": (days >= LEGACY_DEV[0]) & (days <= LEGACY_DEV[1]),
+        "legacy_test": (days >= LEGACY_TEST[0]) & (days <= LEGACY_TEST[1]),
+        "historical_frozen": (days >= LEGACY_DEV[0]) & (days <= HISTORICAL_END),
         "forward_confirmatory": days >= forward_start,
     }
 
@@ -478,6 +479,151 @@ def _download_tqqq_traded_price(days: pd.DatetimeIndex) -> pd.Series:
     return aligned
 
 
+def _run_entry_phases(b: Bars, multiplier: pd.DataFrame, *, fomc_only: bool = False) -> dict:
+    """Fresh 30-phase run with the correct actual-share exit-cost ledger."""
+    import r3_study as r3
+    from event_calendar import FOMC_DECISION
+
+    out = {}
+    if fomc_only:
+        fomc = set(pd.DatetimeIndex(FOMC_DECISION).intersection(b.days))
+        non_fomc = [day for day in b.days if day not in fomc]
+    for phase in range(30):
+        kwargs = dict(checks=r3.SA.chk(phase), sizing="voltarget", max_lev=4.0,
+                      reentry="hold", half_spread=r3.LI.HS0, commission=r3.LI.CM0,
+                      cost_shares="actual", entry_mult=multiplier, **r3.SA.BASE)
+        if fomc_only:
+            kwargs["checks"] = [clock for clock in r3.SA.chk(phase) if clock >= "14:30"]
+            kwargs["half_spread"] = 0.005
+            kwargs["commission"] = 0.0045
+            kwargs["skip_days"] = non_fomc
+        returns, fills = r3.SIM_E(b, **kwargs)
+        fills = fills.copy()
+        if len(fills):
+            fills["day"] = pd.to_datetime(fills.day)
+        out[phase] = (returns, fills)
+    return out
+
+
+def _standalone_execution_stats(phases: dict, b: Bars, period_mask: np.ndarray) -> dict[str, float]:
+    """Two-sided underlying-notional turnover for an equal-weight 30-phase Sleeve."""
+    import liquidity_inverse_study as li
+
+    period_days = b.days[np.asarray(period_mask, bool)]
+    parts = []
+    for phase, (_, fills) in phases.items():
+        if fills is None or not len(fills):
+            continue
+        trades = li.trades_from_fills(fills, phase)
+        if len(trades):
+            parts.append(trades)
+    if not len(period_days):
+        return {"turnover_daily_two_sided": np.nan, "entries_per_year": np.nan,
+                "active_market_day_rate": np.nan, "mean_holding_minutes": np.nan}
+    if not parts:
+        return {"turnover_daily_two_sided": 0.0, "entries_per_year": 0.0,
+                "active_market_day_rate": 0.0, "mean_holding_minutes": np.nan}
+    trades = pd.concat(parts, ignore_index=True)
+    trades["day"] = pd.to_datetime(trades.day)
+    trades = trades[trades.day.isin(period_days)]
+    if trades.empty:
+        return {"turnover_daily_two_sided": 0.0, "entries_per_year": 0.0,
+                "active_market_day_rate": 0.0, "mean_holding_minutes": np.nan}
+    turnover = (np.abs(trades.shares * trades.entry_px) +
+                np.abs(trades.shares * trades.exit_px)) / 30.0
+    daily = pd.Series(turnover.to_numpy(), index=trades.day).groupby(level=0).sum().reindex(period_days).fillna(0)
+    years = max(len(period_days) / 252.0, 1 / 252.0)
+    tin = pd.to_datetime(trades.t_in, format="%H:%M")
+    tout = pd.to_datetime(trades.t_out, format="%H:%M")
+    return {"turnover_daily_two_sided": float(daily.mean()),
+            "entries_per_year": float(len(trades) / 30.0 / years),
+            "active_market_day_rate": float((daily > 0).mean()),
+            "mean_holding_minutes": float((tout - tin).dt.total_seconds().mean() / 60.0)}
+
+
+def standalone_strategy_tables(b: Bars, profiles: dict[str, pd.DataFrame], *, nb: int,
+                               seed: int, hac_lags: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Band-only external validation using the audited 30-phase Sleeve state machine.
+
+    This deliberately excludes the QQQ core, FFA, PPP and v5 allocation layers. It is
+    suitable when an independent source supplies only compatible one-minute OHLCV.
+    """
+    import sleeve_anatomy as sa
+
+    mean14 = sigma_profile(b, 14)
+    curves, phase_runs = {}, {}
+    for spec in VARIANTS:
+        multiplier = (profiles[spec.name] / mean14).where(mean14 > 0)
+        phases = _run_entry_phases(b, multiplier, fomc_only=False)
+        phase_runs[spec.name] = phases
+        curves[spec.name] = pd.concat(
+            {phase: ret.reindex(b.days).fillna(0.0) for phase, (ret, _) in phases.items()}, axis=1
+        ).mean(axis=1)
+
+    # All variants must have a valid width at every possible shifted check time.
+    # Otherwise q60's longer warm-up would be silently counted as zero return.
+    shifted_checks = sorted({clock for phase in range(30)
+                             for clock in sa.chk(phase)})
+    common_ready = np.logical_and.reduce([
+        profiles[spec.name][shifted_checks].notna().all(axis=1).to_numpy()
+        for spec in VARIANTS
+    ])
+    base_periods = {
+        "dev": (b.days >= LEGACY_DEV[0]) & (b.days <= LEGACY_DEV[1]),
+        "test": (b.days >= LEGACY_TEST[0]) & (b.days <= LEGACY_TEST[1]),
+        "all": (b.days >= LEGACY_DEV[0]) & (b.days <= HISTORICAL_END),
+    }
+    periods = {}
+    for label, mask in base_periods.items():
+        mask = np.asarray(mask) & common_ready
+        if mask.any():
+            selected = b.days[mask]
+            periods[f"{label}_{selected.min().year}_{selected.max().year}"] = mask
+    rows = []
+    for spec in VARIANTS:
+        for period, mask in periods.items():
+            values = curves[spec.name][mask]
+            if not len(values):
+                continue
+            eq = (1 + values).cumprod()
+            drawdown = eq / eq.cummax() - 1
+            execution = _standalone_execution_stats(phase_runs[spec.name], b, mask)
+            rows.append({"symbol": b.sym, "variant": spec.name, "period": period,
+                         "n_days": len(values), "mean_bp": float(values.mean() * 1e4),
+                         "sharpe": _sr(values.to_numpy()),
+                         "cagr": float(eq.iloc[-1] ** (252 / len(values)) - 1),
+                         "vol": float(values.std(ddof=1) * np.sqrt(252)),
+                         "mdd": float(drawdown.min()), "worst_day": float(values.min()),
+                         **execution})
+
+    baseline = curves[CURRENT_VARIANT]
+    alternatives = [v.name for v in VARIANTS if v.name != CURRENT_VARIANT]
+    comparisons = []
+    for period, mask in periods.items():
+        if not mask.any():
+            continue
+        differences = pd.DataFrame({name: (curves[name] - baseline)[mask]
+                                    for name in alternatives})
+        holm = _holm({name: _hac_mean_test(differences[name].to_numpy(), hac_lags)["p_one_sided_gt0"]
+                      for name in alternatives})
+        for block in (5, 10, 20):
+            max_t = _max_t_pvalues(differences, nb=nb, block=block,
+                                   seed=seed + block, hac_lags=hac_lags)
+            for name in alternatives:
+                h = _hac_mean_test(differences[name].to_numpy(), hac_lags)
+                boot = _paired_bootstrap(curves[name][mask].to_numpy(), baseline[mask].to_numpy(),
+                                         nb=nb, block=block,
+                                         seed=seed + block + sum(map(ord, name)))
+                comparisons.append({"symbol": b.sym, "variant": name,
+                                    "baseline": CURRENT_VARIANT, "period": period,
+                                    "block_length": block, "n_days": int(mask.sum()),
+                                    "mean_diff_hac_t": h["t_hac"],
+                                    "mean_diff_p_one_sided": h["p_one_sided_gt0"],
+                                    "holm_hac_p": holm[name], "max_t_family_p": max_t[name],
+                                    **boot})
+    return pd.DataFrame(rows), pd.DataFrame(comparisons)
+
+
 def strategy_tables(b: Bars, profiles: dict[str, pd.DataFrame], *, forward_start: pd.Timestamp,
                     nb: int, seed: int, hac_lags: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Rebuild each band through current v5, changing only the entry-width profile."""
@@ -538,8 +684,8 @@ def strategy_tables(b: Bars, profiles: dict[str, pd.DataFrame], *, forward_start
         multiplier = (profiles[spec.name] / mean14).where(mean14 > 0)
         # Re-run every candidate, including the paper baseline, in this process.
         # This avoids mixing unversioned phase caches with fresh candidate runs.
-        phb = r3.run_PH_entry(b, multiplier)
-        phf = r3.run_PH_entry(b, multiplier, fomc_only=True)
+        phb = _run_entry_phases(b, multiplier, fomc_only=False)
+        phf = _run_entry_phases(b, multiplier, fomc_only=True)
         phase_runs[spec.name] = (phb, phf)
         legs = r3.legs_k(phb, phf, b, inputs["keep"])
         extra_l, extra_s = _early_exit_cost_adjustment(phb, phf, b, tqqq_scale)
@@ -699,7 +845,7 @@ def _smoke() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--section", choices=("calibration", "strategy", "all"), default="all")
+    parser.add_argument("--section", choices=("calibration", "standalone", "strategy", "all"), default="all")
     parser.add_argument("--symbols", nargs="+", default=["QQQ", "SPY"])
     parser.add_argument("--forward-start", default=str(DEFAULT_FORWARD_START.date()),
                         help="first post-freeze date eligible for confirmatory interpretation")
@@ -707,6 +853,8 @@ def main() -> None:
     parser.add_argument("--hac-lags", type=int, default=10)
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--skip-md5", action="store_true")
+    parser.add_argument("--data-label", default="canonical-manifest",
+                        help="provenance label recorded in experiment metadata")
     parser.add_argument("--smoke", action="store_true")
     args = parser.parse_args()
     if args.smoke:
@@ -735,6 +883,22 @@ def main() -> None:
         pd.concat(by_clock, ignore_index=True).to_csv(TABLES / "noise_band_coverage_by_clock.csv", index=False)
         pd.concat(events, ignore_index=True).to_csv(TABLES / "noise_band_continuation.csv", index=False)
         pd.concat(regressions, ignore_index=True).to_csv(TABLES / "noise_band_incremental_regression.csv", index=False)
+    if args.section == "standalone":
+        standalone_rows, standalone_inference = [], []
+        for symbol in args.symbols:
+            bars = load_bars(symbol)
+            profiles, _ = build_profiles(bars)
+            table, inference = standalone_strategy_tables(
+                bars, profiles, nb=args.bootstrap, seed=args.seed, hac_lags=args.hac_lags
+            )
+            standalone_rows.append(table)
+            standalone_inference.append(inference)
+        pd.concat(standalone_rows, ignore_index=True).to_csv(
+            TABLES / "noise_band_standalone_strategy.csv", index=False
+        )
+        pd.concat(standalone_inference, ignore_index=True).to_csv(
+            TABLES / "noise_band_standalone_inference.csv", index=False
+        )
     if args.section in ("strategy", "all"):
         if "QQQ" not in built:
             bars = load_bars("QQQ")
@@ -752,9 +916,12 @@ def main() -> None:
                 "confirmatory_min_days": 252,
                 "bootstrap": args.bootstrap, "hac_lags": args.hac_lags, "seed": args.seed,
                 "variants": [asdict(v) for v in VARIANTS], "data_md5": observed,
+                "data_label": args.data_label,
                 "interpretation": "history through historical_end is diagnostic; only post-freeze forward data can confirm",
                 "elapsed_seconds": time.time() - started}
-    (TABLES / "noise_band_experiment_metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
+    payload = json.dumps(metadata, ensure_ascii=False, indent=2) + "\n"
+    (TABLES / "noise_band_experiment_metadata.json").write_text(payload)
+    (TABLES / f"noise_band_experiment_metadata_{args.section}.json").write_text(payload)
     print(f"wrote Noise Band validation tables to {TABLES} in {time.time() - started:.1f}s")
 
 

@@ -1,0 +1,54 @@
+{
+  "created_utc": "2026-10-31T16:16:39.147475+00:00",
+  "git_branch": "research/noise-band-validation-2026-10",
+  "section": "calibration",
+  "symbols": [
+    "SPY"
+  ],
+  "historical_end": "2026-10-30",
+  "forward_start": "2026-11-02",
+  "confirmatory_min_days": 252,
+  "bootstrap": 2000,
+  "hac_lags": 10,
+  "seed": 20261031,
+  "variants": [
+    {
+      "name": "paper_mean14",
+      "estimator": "rolling_mean_abs_move",
+      "lookback": 14,
+      "q": null,
+      "adaptive_s3": false,
+      "nominal_coverage": null
+    },
+    {
+      "name": "current_mean14_s3",
+      "estimator": "rolling_mean_abs_move",
+      "lookback": 14,
+      "q": null,
+      "adaptive_s3": true,
+      "nominal_coverage": null
+    },
+    {
+      "name": "q60_l60",
+      "estimator": "rolling_quantile_abs_move",
+      "lookback": 60,
+      "q": 0.6,
+      "adaptive_s3": false,
+      "nominal_coverage": 0.6
+    },
+    {
+      "name": "q60_l60_s3",
+      "estimator": "rolling_quantile_abs_move",
+      "lookback": 60,
+      "q": 0.6,
+      "adaptive_s3": true,
+      "nominal_coverage": null
+    }
+  ],
+  "data_md5": {
+    "status": "skipped"
+  },
+  "data_label": "public-alpaca-spy-2021-01-04_to_2024-12-30@90c392dd",
+  "interpretation": "history through historical_end is diagnostic; only post-freeze forward data can confirm",
+  "elapsed_seconds": 4.635035514831543
+}
