@@ -166,3 +166,18 @@ from quantkit.stats import perf, bootstrap
 | 订单变大后仍用 1 tick 半价差 | `execution.book` |
 | 刷新数据后旧数字不复现 | 刷新前备份;写新清单 |
 | 把 Sharpe 当唯一指标 | 分布面板 |
+
+## 8. 分支与归档(2026-11-06 整理)
+
+所有研究分支已合并进 `main`,并以 tag 保留分支末端的提交(`git checkout archive/<名字>` 可回到当时状态)。仓库只保留 `main`;新工作开新分支,通过 PR 合并。
+
+| tag | 末端提交 | 内容 |
+|---|---|---|
+| `archive/layered-2026-10` | 3f5902b | 分层架构 L0–L4 预注册研究、统一仓位、tearsheet v3(原 PR #1) |
+| `archive/duration-vol-entry-2026-10` | bb5eff5 | 价格持续期 B0、σ14 喂入、链接函数/复杂模型/特征族、dur_rate |
+| `archive/intraday-vol-entry-2026-10` | 1976805 | 日内波动三轮、入场带、tearsheet v4 |
+| `archive/crowding-vol-timing-2026-10` | d5e9813 | 拥挤度、噪声/核心仓、tearsheet v5、harness、复盘、quantkit |
+| `archive/noise-band-validation-2026-10` | 08c3ae1 | Noise Band 验证(PR #2,另一个 agent) |
+| `archive/option-edge-2026-10` | 78f28c5 | 期权 edge 文献综述与预注册草稿(仅文档) |
+
+实盘仓库 `IntradayMomentumLive` 同样只保留 `main`:`archive/fix-runner-reconnect`(连接丢失检测 + 卡死看门狗)、`archive/feat-mdrec-recorder`(盘口/逐笔记录器 + give-up 看门狗)。合并 `main` 不会改变服务器上正在运行的服务;mdrec 修复已于 2026-10-30 部署,runner 看门狗仅暂存在服务器上,尚未启用。
