@@ -13,7 +13,7 @@ fam = {f"RV[{lo},{hi}]": daily.leg_return(daily.rv_weight(px, lo, hi) * daily.tr
 F = pd.DataFrame(fam).loc["2021":]; base = F["RV[0.5,1.5]"]
 inc = pd.DataFrame({k: overfit.vol_matched_increment(F[k], r.loc[F.index]) for k in F})            # increments over B&H at equal risk
 var_sr = inc.apply(overfit.sr_period).var(ddof=1)
-K = 405                                                                                           # project-wide trial count, docs/TRIAL_REGISTRY.md
+K = 413                                                                                           # project-wide trial count, docs/TRIAL_REGISTRY.md
 print("increment PSR(>0) / DSR(K=%d):" % K)
 for k in inc:
     print(f"  {k:12s} ann.SR {overfit.sr_period(inc[k])*np.sqrt(252):6.3f}  PSR {overfit.psr(inc[k]):.3f}  DSR {overfit.dsr(inc[k], var_sr, K):.3f}")
