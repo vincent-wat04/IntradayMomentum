@@ -33,20 +33,27 @@ K_MAX = 2.0
 
 
 def build_v5(core_w, sleeve, e_vt, k_used, core_ret, ref_port, rho: float = RHO_DEFAULT, cap: float = CAP_DEFAULT, band: float = BAND_DEFAULT,
-             use_ratio: bool = True, use_band: bool = True, use_cap: bool = True, pit_cap: bool = False, core_cost: float = 2e-4) -> dict:
+             use_ratio: bool = True, use_band: bool = True, use_cap: bool = True, pit_cap: bool = False, core_cost: float = 2e-4, scales=None) -> dict:
     """All inputs are arrays aligned on trading days.
     core_w   target core weight (PIT)           sleeve   Sleeve daily return with PPP multipliers already applied (v4 Sleeve)
     e_vt     vol-target leverage min(4, 2%/sigma14)   k_used   max(k_long, k_short) of the day (ignored if pit_cap)
     core_ret core asset daily return            ref_port reference portfolio (v4) whose risk is matched
+    scales   optional (a_core, a_sleeve) arrays that REPLACE the risk-match step: core target = a_core*core_w, Sleeve multiplier = a_sleeve
+             (use this when the two multipliers come from your own optimiser instead of the fixed rho). Implies use_ratio=False.
     Returns dict(port, core_w, sleeve_mult, usage_pre, usage_post, f, c)."""
     core_w, sleeve, e_vt, core_ret = (np.asarray(a, float) for a in (core_w, sleeve, e_vt, core_ret)); n = len(core_ret)
     k = np.full(n, K_MAX) if pit_cap else np.asarray(k_used, float)
-    if use_ratio:
+    if scales is not None:
+        a_c, a_s = (np.asarray(a, float) * np.ones(n) for a in scales); c = a_c; rho = 1.0
+        tgt = a_c * core_w; sm = a_s.copy()
+    elif use_ratio:
         mix = pd.Series(core_w * core_ret + rho * sleeve)
         c = (pd.Series(ref_port).rolling(252, min_periods=126).std() / mix.rolling(252, min_periods=126).std()).shift(1).clip(0.5, 1.5).fillna(1.0).to_numpy()
     else:
         c = np.ones(n); rho = 1.0
-    tgt = c * core_w; sm = c * rho; slv = e_vt * k / 3.0; usage_pre = tgt + slv * sm
+    if scales is None:
+        tgt = c * core_w; sm = c * rho
+    slv = e_vt * k / 3.0; usage_pre = tgt + slv * sm
     f = np.minimum(1.0, cap / np.maximum(usage_pre, 1e-12)) if use_cap else np.ones(n); tgt = tgt * f; sm = sm * f
     w = np.empty(n); cur = tgt[0]
     for i in range(n):
