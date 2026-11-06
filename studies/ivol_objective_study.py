@@ -127,8 +127,9 @@ def fit_obj(Z, Lb, Sb, Eb, Qd, lam, obj, link="sig"):
     return pred, util
 
 
-def wf_obj(X, feats, Lb, Sb, Eb, Q, sel, days, obj, link="sig"):
-    yrs = days.year; out = pd.DataFrame(np.nan, index=days, columns=["kl", "ks"]); lam_sel = {}
+def wf_obj(X, feats, Lb, Sb, Eb, Q, sel, days, obj, link="sig", embargo=0):
+    """embargo:内层留一年 CV 时在被留出年份前后各剔除 embargo 个交易日的训练样本(默认 0 = 原行为)。"""
+    yrs = days.year; pos = np.arange(len(days)); out = pd.DataFrame(np.nan, index=days, columns=["kl", "ks"]); lam_sel = {}
     Qa = {c: Q[c].to_numpy() for c in Q.columns}; sub = lambda idx: {c: v[idx] for c, v in Qa.items()}
     def design(idx, ref):
         mu, sd = X.loc[ref, feats].mean(), X.loc[ref, feats].std().replace(0, 1)
@@ -139,6 +140,7 @@ def wf_obj(X, feats, Lb, Sb, Eb, Q, sel, days, obj, link="sig"):
             sc = []
             for hy in sorted(set(yrs[tr])):
                 a_, h_ = tr & (yrs != hy), tr & (yrs == hy)
+                if embargo and h_.any(): a_ = a_ & ~((pos >= pos[h_].min() - embargo) & (pos <= pos[h_].max() + embargo))
                 if a_.sum() < 150 or h_.sum() < 50: continue
                 pr, util = fit_obj(design(a_, a_), Lb[a_], Sb[a_], Eb[a_], sub(a_), lam, obj, link); kl, ks = pr(design(h_, a_))
                 one = np.ones(int(h_.sum()))

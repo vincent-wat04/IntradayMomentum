@@ -114,8 +114,9 @@ def mlp_fit(Z, Lb, Sb, Eb, lam, seeds=(0, 1, 2, 3, 4), hidden=8, steps=400):
 
 
 # ============================================================ 通用走步(与 P.wf 同协议)
-def wf(X, feats, Lb, Sb, Eb, sel, days, fit, lams, expand=None):
-    yrs = days.year; out = pd.DataFrame(np.nan, index=days, columns=["kl", "ks"]); lam_sel = {}
+def wf(X, feats, Lb, Sb, Eb, sel, days, fit, lams, expand=None, embargo=0):
+    """embargo:内层留一年交叉验证时,在被留出年份的前后各剔除 embargo 个交易日的训练样本(handbook 第 18 讲;波动聚集使相邻日不独立)。默认 0 = 原行为。"""
+    yrs = days.year; out = pd.DataFrame(np.nan, index=days, columns=["kl", "ks"]); lam_sel = {}; pos = np.arange(len(days))
     def design(idx, ref):
         mu, sd = X.loc[ref, feats].mean(), X.loc[ref, feats].std().replace(0, 1)
         Z = ((X.loc[idx, feats] - mu) / sd).to_numpy()
@@ -129,6 +130,7 @@ def wf(X, feats, Lb, Sb, Eb, sel, days, fit, lams, expand=None):
             sc = []
             for hy in sorted(set(yrs[tr])):
                 a_, h_ = tr & (yrs != hy), tr & (yrs == hy)
+                if embargo and h_.any(): a_ = a_ & ~((pos >= pos[h_].min() - embargo) & (pos <= pos[h_].max() + embargo))
                 if a_.sum() < 150 or h_.sum() < 50: continue
                 pr, g = fit(design(a_, a_), Lb[a_], Sb[a_], Eb[a_], lam)
                 kl, ks = pr(design(h_, a_))

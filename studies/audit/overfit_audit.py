@@ -55,7 +55,14 @@ def registry_K(path=HERE.parent.parent / "docs" / "TRIAL_REGISTRY.md"):
     m = re.search(r"\*\*合计\*\*.*?\*\*≈ ?(\d+)\*\*", path.read_text()); return int(m.group(1))
 
 
-def build_family():
+def build_family(cache=True):
+    cp = Path(os.environ.get("ETFT_DATA", "../data")) / "_family.pkl"
+    if cache and cp.exists(): return pd.read_pickle(cp)
+    r = _build_family()
+    pd.to_pickle(r, cp); return r
+
+
+def _build_family():
     """v4/v5 候选族:与 v3 同口径的组合收益(① RV21×SMA200 腿 + Sleeve),全部来自已写定的研究脚本。"""
     import disp_pred_study as DP, r2_rules_study as RR, r3_study as R3, sizing_models_study as M, sizing_sigma_feed as SF
     import unified_sizing_posthoc as P, noise_core_dd as NC, tearsheet_v5 as T5, round3_common as C
