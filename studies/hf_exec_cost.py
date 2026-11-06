@@ -93,11 +93,14 @@ def main():
         print(f"  {nm}: 中位订单 {med:,.0f} 股 → 额外滑点 {np.interp(med, Qs, ex):+.4f} $/股;P90 订单 {p90:,.0f} 股 → {np.interp(p90, Qs, ex):+.4f} $/股")
     be = float(np.interp(ASSUMED, ex, Qs)) if ex.max() >= ASSUMED else float("nan")
     print(f"  额外滑点达到 $0.005/股(成本翻倍)的订单规模 ≈ {be:,.0f} 股" + (f" ≈ CAPITAL_BASE 的 {be/ (Dz['v5ρ1.5 股数']['50%']) :.1f}× 当前 v5 中位订单" if be == be else "(本网格内未达到)"))
-    # 成本拖累:每笔往返额外滑点 bp(占 TQQQ 名义)× 名义/资金
+    # 成本拖累:Sleeve 只在约三分之一的交易日有成交(30 相位里各相位有成交的日占比的均值),所以日均拖累 = 活跃日占比 × 活跃日拖累
+    oos_days = days[om.to_numpy()]
+    active = float(np.mean([F[pd.to_datetime(F.day).isin(oos_days)].day.nunique() / len(oos_days) for off, (rr, F) in E["PHb"].items() if len(F)]))
+    print(f"  Sleeve 有成交的日占比(30 相位均值,OOS 2021–26)≈ {active:.2f}")
     for nm, nn in (("v4", n4), ("v5ρ1.5", n5)):
-        sh = nn[rec & (ev > 0)] / px; xs = np.interp(sh, Qs, ex)   # bp(资金)/天 = 2 边 × 额外$/股 × 股数 / 资金
-        print(f"  {nm}: 额外滑点造成的 Sleeve 日均拖累 ≈ {np.mean(2 * xs * sh / CAPITAL * 1e4):.2f} bp(资金)/交易日(Sleeve 日均收益(已扣假设成本)≈ 12.8 bp,OOS v4)")
-
+        sh = nn[rec & (ev > 0)] / px; xs = np.interp(sh, Qs, ex)   # bp(资金)/活跃日 = 2 边 × 额外$/股 × 股数 / 资金
+        per_active = float(np.mean(2 * xs * sh / CAPITAL * 1e4))
+        print(f"  {nm}: 活跃日额外滑点拖累 ≈ {per_active:.2f} bp(资金);日均(×活跃日占比)≈ {per_active*active:.2f} bp(Sleeve 日均收益(已扣假设成本)≈ 12.8 bp,OOS v4)")
 
 if __name__ == "__main__":
     main()

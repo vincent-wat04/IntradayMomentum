@@ -1,0 +1,15 @@
+=== 1. Who sizes what: the PPP multipliers apply to the Sleeve legs only; the core weight is the fixed rule w_t ===
+core rule weight w_t (OOS): mean 0.949, min 0.25, max 1.50;  PPP k_long mean 1.064, k_short mean 1.105
+      config  core_w_mean  sleeve_mult_mean    c_mean    f_mean  share_days_f_lt_1  core_vol_ann  sleeve_vol_ann  port_vol_ann  oos_sharpe
+          v4       0.9493            1.0000    1.0000    1.0000             0.0000        0.1841          0.1392        0.2254      1.9108
+        +cap       0.9216            0.9803    1.0000    0.9803             0.1475        0.1805          0.1375        0.2215      1.9380
+   +cap+band       0.9249            0.9803    1.0000    0.9803             0.1475        0.1813          0.1375        0.2223      1.9589
+v5 (rho=1.5)       0.7690            1.2301    0.8487    0.9671             0.2007        0.1517          0.1710        0.2222      2.2038
+
+=== 2. Two-asset mean-variance view (OOS 2021-26, v4 legs, before any rescaling) ===
+core: mean 0.111/yr, vol 0.184, Sharpe 0.60;  Sleeve(v4, mult 1): mean 0.322/yr, vol 0.139, Sharpe 2.31;  corr -0.05
+unconstrained max-Sharpe weights (relative to v4's 1:1 mix): sleeve/core = 4.35  (v5 uses rho = 1.5 then rescales total risk back to v4's level)
+risk share of Sleeve in v4: 0.38 of variance (own variance / total), core: 0.67
+
+=== 3. Does the cap/ratio act mostly on days when the Sleeve is on? ===
+core weight reduction vs rule (w - executed): active-Sleeve days 0.157, other days 0.201

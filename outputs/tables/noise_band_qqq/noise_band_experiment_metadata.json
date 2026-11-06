@@ -1,0 +1,67 @@
+{
+  "created_utc": "2026-11-06T13:52:34.001268+00:00",
+  "git_branch": "research/crowding-vol-timing-2026-10",
+  "section": "strategy",
+  "symbols": [
+    "QQQ"
+  ],
+  "historical_end": "2026-10-30",
+  "forward_start": "2026-11-02",
+  "confirmatory_min_days": 252,
+  "bootstrap": 2000,
+  "hac_lags": 10,
+  "seed": 20261031,
+  "variants": [
+    {
+      "name": "paper_mean14",
+      "estimator": "rolling_mean_abs_move",
+      "lookback": 14,
+      "q": null,
+      "adaptive_s3": false,
+      "nominal_coverage": null
+    },
+    {
+      "name": "current_mean14_s3",
+      "estimator": "rolling_mean_abs_move",
+      "lookback": 14,
+      "q": null,
+      "adaptive_s3": true,
+      "nominal_coverage": null
+    },
+    {
+      "name": "q60_l60",
+      "estimator": "rolling_quantile_abs_move",
+      "lookback": 60,
+      "q": 0.6,
+      "adaptive_s3": false,
+      "nominal_coverage": 0.6
+    },
+    {
+      "name": "q60_l60_s3",
+      "estimator": "rolling_quantile_abs_move",
+      "lookback": 60,
+      "q": 0.6,
+      "adaptive_s3": true,
+      "nominal_coverage": null
+    }
+  ],
+  "data_md5": {
+    "raw/cboe/VIX.parquet": "f2d54dfc19f890cd87a4cb4a18631b05",
+    "raw/cboe/VIX9D.parquet": "cf4f4e6c57fc0ef6759507536ebc48d8",
+    "raw/cboe/VVIX.parquet": "acf52290cffa909135555eaf478d8259",
+    "raw/cboe/VXN.parquet": "8cf5d92014995f78524585d7cb87dc85",
+    "raw/econ_cal/ec.csv": "7adbcb0835d7d7394084dcbd44358fe7",
+    "raw/min1/IWM.csv": "eb0ecffd45431fd057d825e50c1a4477",
+    "raw/min1/QQQ.csv": "b1d6e92974b80a4a2e8a99fb5ba270a3",
+    "raw/min1/SPY.csv": "b0cb2a0dbfe38c65e6923a34914a6932",
+    "raw/min1/TLT.csv": "19677f387d9c612a86b90b0bda798ec2",
+    "raw/min1/XLK.csv": "db283e6243216f1905034ce409acc275",
+    "raw/squeeze_dix_gex.parquet": "ba71090f01caf0160bc8e067c12baa8c",
+    "raw/yahoo/IDX_GSPC.parquet": "8c6eb086269a9e486db299869c30f53c",
+    "raw/yahoo/IDX_NDX.parquet": "a8ae04fc15fb509578faa8c3259ea478",
+    "raw/yahoo/QQQ.parquet": "8309a3f68fad9ac4f556a3c17ecb5065"
+  },
+  "data_label": "canonical-sandbox-rebuilt-2026-10",
+  "interpretation": "history through historical_end is diagnostic; only post-freeze forward data can confirm",
+  "elapsed_seconds": 399.7741868495941
+}

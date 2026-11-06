@@ -21,6 +21,8 @@
 | 14 | 去噪 / 核心仓 / 配比 / 买力约束 | `PROPOSAL_noise_core_dd.md` | L1/组合 | 10 | 长样本 | 是 8 + 事后 2 | S2c 通过 |
 | 15 | v5 + 敏感性 | `tearsheet_v5.py` | 组合 | 4 | — | ρ 预先固定 | v5 |
 | 16 | 研究链复盘检查(R2 禁运 3、R3a 简化跳过 4、R3b dur_rate 2、R3d k≡1 1) | `REVIEW_2026-10.md`、`studies/audit/review_checks.py` | L2 | 10 | R1/R4/R5 诊断(PSI 8、归因 2、单调性 8) | 是(判据写在脚本头) | 无新增策略;仅诊断 |
-| | **合计** | | | **≈ 396** | | | |
+| 17 | Noise Band 验证(PR #2,另一个 agent):q60-L60、q60-L60×s3、paper mean14 三个候选 vs current;外部 SPY 与 canonical QQQ 各一遍 | `PROPOSAL_noise_band_validation.md`、`REVIEW_2026-10.md` §8 | L2 入场 | 6(QQQ 3 + SPY 3)| 覆盖率 16、延续 48、增量回归 48 | 是(PR 文件头) | 无升级 |
+| 18 | PR #2 记账问题量化(A 成本、B PIT 买力缩放、A+B) | `studies/audit/pr2_accounting_check.py` | 组合 | 3 | — | 是(脚本头) | v5 −0.03,区间含 0 |
+| | **合计** | | | **≈ 405** | | | |
 
 注意:合计是下界(早期轮次的"≥150"本身就是下界,参数网格内部的每个点没有单独计数)。

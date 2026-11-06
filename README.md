@@ -1,10 +1,24 @@
 # noise-momentum-research
 
-QQQ 日内噪声区间动量策略的**完整研究记录**：79 个实验脚本、57 项机械化审计、
-14 篇研究文档、49 张图。实盘代码在 `noise-momentum-live`。
+QQQ 核心仓 + 日内噪声区间 Sleeve 的**完整研究记录**:190 个冻结的研究脚本、数十份预注册提案与报告、
+`quantkit/` 可复用库、机械化审计、已提交的图表。实盘代码在 `IntradayMomentumLive`(另一个仓库)。
 
 这份记录刻意**保留了失败的实验和被推翻的结论**。做量化研究，
 "什么不work、以及为什么"比最终那个配置更值钱。
+
+## Start here
+
+| 想做什么 | 看哪里 |
+|---|---|
+| 自己写研究:取数据、回测、统计检验 | `docs/RESEARCH_GUIDE.md`、`quantkit/`、`examples/` |
+| 理解方法论和判定规则 | `docs/HARNESS.md` |
+| 当前结论有多可信、哪里有问题 | `docs/REVIEW_2026-10.md` |
+| v5 的核心仓/Sleeve 仓位怎么定 | `docs/V5_SIZING_EXPLAINED.md` |
+| 一共试了多少次(多重检验记账) | `docs/TRIAL_REGISTRY.md` |
+| 找某个研究脚本 | `studies/INDEX.md` |
+| 面试/CV 口径 | `docs/INTERVIEW_PREP.md` |
+
+**不要移动或改名 `studies/` 里的脚本**:它们互相按顶层模块名 import。新工作用 `quantkit`。
 
 ---
 
@@ -314,8 +328,4 @@ v5 = v4 + 三处组合层修改（运行前写定，`docs/PROPOSAL_noise_core_dd
 | ② v4 | 1.82 / −15.7% | 2.41 / −11.5% | 2.11 / 51.2% / −15.7% |
 | **② v5** | **1.95 / −15.5%** | **2.71 / −9.3%** | **2.31 / 56.4% / −15.5%** |
 ① v5 平均核心仓权重 0.77（v4 0.93）、Sleeve 乘数 1.26；最坏占用最高 2.57。注意：v4 与 v5 的改动都是多轮研究后选定的，未经前向验证；建议先前向影子运行。
-
-## 方法论与复盘
-- `docs/HARNESS.md`:研究 harness(预注册、判定规则、过拟合审计、成本/容量、监控、留出集政策、handbook 采纳清单)
-- `docs/REVIEW_2026-10.md`:研究链复盘 + mdrec 高频数据验证 + TQQQ 盘口成本检查
-- `docs/TRIAL_REGISTRY.md`:全项目试验总账
+记账修正(见 `docs/REVIEW_2026-10.md` §8):v5 的买力缩放用了当日 10:00 之后才有的 k,并且 15:40 提前平仓没有计入主动出场半价差。修正后 ① v5 的 OOS 2021–26 Sharpe 从 2.20 降到 2.17(区间含 0),上表保持原口径。
