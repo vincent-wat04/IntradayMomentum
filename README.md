@@ -1,10 +1,24 @@
 # noise-momentum-research
 
-QQQ 日内噪声区间动量策略的**完整研究记录**：79 个实验脚本、57 项机械化审计、
-14 篇研究文档、49 张图。实盘代码在 `noise-momentum-live`。
+QQQ 核心仓 + 日内噪声区间 Sleeve 的**完整研究记录**:190 个冻结的研究脚本、数十份预注册提案与报告、
+`quantkit/` 可复用库、机械化审计、已提交的图表。实盘代码在 `IntradayMomentumLive`(另一个仓库)。
 
 这份记录刻意**保留了失败的实验和被推翻的结论**。做量化研究，
 "什么不work、以及为什么"比最终那个配置更值钱。
+
+## Start here
+
+| 想做什么 | 看哪里 |
+|---|---|
+| 自己写研究:取数据、回测、统计检验 | `docs/RESEARCH_GUIDE.md`、`quantkit/`、`examples/` |
+| 理解方法论和判定规则 | `docs/HARNESS.md` |
+| 当前结论有多可信、哪里有问题 | `docs/REVIEW_2026-10.md` |
+| v5 的核心仓/Sleeve 仓位怎么定 | `docs/V5_SIZING_EXPLAINED.md` |
+| 一共试了多少次(多重检验记账) | `docs/TRIAL_REGISTRY.md` |
+| 找某个研究脚本 | `studies/INDEX.md` |
+| 面试/CV 口径 | `docs/INTERVIEW_PREP.md` |
+
+**不要移动或改名 `studies/` 里的脚本**:它们互相按顶层模块名 import。新工作用 `quantkit`。
 
 ---
 
@@ -249,3 +263,69 @@ GEX 一共试了 **8 种用法，全部否决**。唯一复现成功的是"GEX �
 * `audit_factors.py` 需要 `data/xs/` 横截面数据（108MB，未入库）。
 * A 股横截面与美股 5 分钟数据受 moomoo 的 300 标的/7 天额度限制，未跑完。
 * 微观结构（真实价差、OFI）**尚未实测** —— `scripts/micro_recorder.py` 没部署成。
+
+
+## 2026-10 分层研究(新增,保留全部旧记录)
+| 文档 | 内容 |
+|---|---|
+| `docs/ARCHITECTURE_layers.md` | 分层架构(L0 择时/regime、L1 RV、L2 Sleeve、L3 日内回转、L4 信息层)+ **证据地图与叠加表** |
+| `docs/PROPOSAL_regime_layer.md` | L0 宏观/市场环境 regime 择时(两轮,42 配置;信用趋势 A2_C 为弱证据) |
+| `docs/PROPOSAL_sleeve_anatomy.md` · `PROPOSAL_trend_rv_sleeve.md` | Sleeve 解剖;RV[0,1]/[0,1.5]/[0,2] 与趋势叠加 Sleeve |
+| `docs/PROPOSAL_lowvol_avoidance.md` · `PROPOSAL_trade_filter.md` | 避开事后低波日(三轮)与逐笔入场过滤 |
+| `docs/PROPOSAL_intraday_reversion_v2.md` | 分钟线日内回转(两轮,含文献 H1–H5) |
+| `docs/PROPOSAL_llm_news_vol.md` | LLM 新闻→波动(三轮,含结构化事件抽取) |
+
+**追加(2026-10-11,第三批)**:`docs/PROPOSAL_intraday_tech_indicators.md`(32 个经典技术指标 × QQQ 5/15 分钟,256 配置,无证据)· `docs/PROPOSAL_regime_layer.md` 第三轮(23 子信号二值库 + 行业龙头/落后 + EW/DYN 赋权,累计 60 配置,无证据)。脚本 `studies/tech_indicators.py`、`intraday_tech_study.py`、`regime_round3_study.py`。
+
+**追加(2026-10-12,第四批)**:`docs/PROPOSAL_intraday_t_overlay.md`(事件驱动做T 倒T/正T,64 配置,无证据)· `docs/PROPOSAL_news_multisource.md`(多源新闻 → 日内波动,2019–2023,无证据;LLM 阶段待密钥)。脚本 `studies/tech_overlay_study.py`、`news_ms.py`、`lowvol_round4_news_study.py`、`news_ms_posthoc.py`。数据缓存 `ETFT_DATA/raw/news_ms/`(不入库)。
+
+**追加(2026-10-12,第五批)**:`docs/PROPOSAL_vol_monetization.md`(波动模型能否变现:无)· `docs/PROPOSAL_fomc_day.md`(FOMC 日与时点偏移:线索)· `docs/PROPOSAL_credit_deepdive.md`(A2_C 细究 + 1986–2003 独立样本:弱,风险保险)。脚本 `studies/vol_monetization_study.py`、`vol_monet_m1b.py`、`fomc_day_study.py`、`credit_deepdive_study.py`。FRED 现已可达(缓存 `ETFT_DATA/raw/fred/`),长历史代理 `raw/regime/long_history.parquet`。
+
+**追加(2026-10-12,第六批)**:`docs/PROPOSAL_disp_prediction.md`(位移/趋势效率预测 + 分阶段入场 + 分布面板:无证据)· `docs/PROPOSAL_iv_deepdive.md`(与隐含波动对赌:未达可交易)· `docs/PROPOSAL_macro_events.md`(CPI/NFP/零售/ISM + 新闻方向:无证据,CPI 缺口回补为事后线索)。脚本 `studies/disp_pred_study.py`、`iv_deepdive_study.py`、`macro_events_study.py`。数据缓存 `ETFT_DATA/raw/econ_cal/`(公开 GitHub 经济日历,含实际/预期/前值)。
+
+**追加(2026-10-12,第七批)**:`docs/PROPOSAL_ffa_vol.md`(FFA 融合滤波 + 6 个基准:统计/仓位/避开低振幅日/择时)· `docs/PROPOSAL_event_delay.md`(事件日不入场/推迟全表 + CPI 回补 overlay 利润,事后)。脚本 `studies/ffa_vol_study.py`、`ffa_skip_posthoc.py`、`event_delay_study.py`。
+
+**追加(2026-10-12,第八批)**:`docs/PROPOSAL_sota_stack.md`(避开低振幅日 13 模型赛马、反向仓位倾斜、Sleeve SOTA 组装、B&H 腿 78 配置跨周期 + 2019+ 叠加 Sleeve)。脚本 `studies/sota_stack_study.py`、`sota_posthoc.py`。
+
+**追加(2026-10-12,第九批)**:新 Sleeve(FOMC≥14:30 + CPI 回补 + FFA-P 跳过 q=0.2)vs 实盘的 dev/test/全周期 × B&H 腿对比,见 `docs/PROPOSAL_sota_stack.md` 末节;脚本 `studies/sleeve_v2_compare.py`。
+
+**追加(2026-10-12,第十批)**:`studies/tearsheet_v2.py` → `outputs/figs/tearsheet_v2.png`(上一版 4 条线 + 新 Sleeve + ① RV21+SMA200+新Sleeve + ② VT[FFA-SD]+SMA200+新Sleeve),指标表 `outputs/tables/tearsheet_v2_{metrics,periods}.csv`。`docs/FORWARD_LIVE_v2.md` = 前向部署与观察规格(分级、精确规则、日志字段、冻结的否决标准)。周一一致性修正见 `docs/PROPOSAL_sota_stack.md` 偏离记录 4。
+
+**追加(2026-10-12,第十一批)**:`docs/PROPOSAL_liquidity_and_inverse.md`(流动性/换手的成本真实性+容量+信号检验;买 SQQQ vs 空 TQQQ 的融券盈亏平衡率;恐慌时仓位不对称)。脚本 `studies/liquidity_inverse_study.py`。三项逐日精确校验均 0.000000bp。
+
+**追加(2026-10-12,第十二批)**:`docs/PROPOSAL_unified_sizing.md` + `docs/REPORT_unified_sizing.md`(统一仓位模型:两腿 sigmoid 参数化策略、分类器诊断与利润曲线、Reactive Volatility Model 复现)。脚本 `studies/unified_sizing_study.py`、`unified_sizing_posthoc.py`;此前一批 `docs/PROPOSAL_liquidity_and_inverse.md`、`studies/liquidity_inverse_study.py` 一并提交。
+
+**追加(2026-10-13,第十三批)**:`docs/PROPOSAL_letf_rebalance.md`(统一仓位叠加 SOTA;杠杆 ETF 收盘再平衡流的 alpha/执行检验)。脚本 `studies/sota_unified_stack.py`、`letf_rebalance_study.py`、`letf_posthoc.py`;ProShares AUM 缓存 `ETFT_DATA/raw/letf/`。
+
+## Tearsheet v3（2026-10）
+`studies/tearsheet_v3.py` → `outputs/figs/tearsheet_v3.png`, `outputs/tables/tearsheet_v3_{metrics,periods}.csv`。
+① = RV21[0.5,1.5]×SMA200 + v3 Sleeve；② = VT[FFA-SD, cap 1.5]×SMA200 + v3 Sleeve。v3 Sleeve = SOTA（FOMC ≥14:30、跳过 FFA-P 振幅最低 20%、CPI 缺口回补 1×、排除周一）+ 统一仓位（PPP、7 个 CLEAN 特征、按对应组合 walk-forward 重训、2021 起生效）+ 15:40 平仓。
+全样本 2019-01~2026-10：① Sharpe 2.02 / CAGR 49.2% / MDD −15.5%；② 2.07 / 49.6% / −18.6%；现用组合 1.56 / 39.3% / −19.7%。
+注意：除统一仓位为 walk-forward 外，各组件均为 2019–2026 上事后选择；各增量置信区间含 0；15:40 平仓按 MOC 同等成本计，优势偏高估；2022 年统一仓位与提前平仓均为负贡献。
+
+## Tearsheet v4（2026-10，描述性）
+`studies/tearsheet_v4.py` → `outputs/figs/tearsheet_v4.png`, `outputs/tables/tearsheet_v4_{metrics,periods,yearly}.csv`。
+v4 Sleeve = v3 Sleeve + 入场带按"无成交量配合的波动"放宽（只放宽入场带，止损带不变）+ 仓位模型改为线性链接、特征加 `dur_rate`（10:00 前价格持续期事件率），均值–方差组合效用，按各自组合走步重训。
+本环境复现 v3：① dev/test/全 1.585/2.479/2.031（repo 1.587/2.461/2.022），差异来自公开源重建的日线/VIX（`data/MANIFEST_sandbox_2026-10.md5`）。
+| 组合 | dev 19–22 Sharpe | test 23–26 Sharpe / MDD | 全期 Sharpe / MDD |
+|---|---|---|---|
+| ① RV21+SMA200 + v3 Sleeve | 1.59 | 2.48 / −13.6% | 2.03 / −15.5% |
+| **① RV21+SMA200 + v4 Sleeve** | **1.67** | **2.59 / −11.8%** | **2.12 / −15.9%** |
+| ② VT[FFA-SD]+SMA200 + v3 Sleeve | 1.77 | 2.37 / −13.5% | 2.07 / −18.8% |
+| **② VT[FFA-SD]+SMA200 + v4 Sleeve** | **1.82** | **2.41 / −11.5%** | **2.11 / −15.7%** |
+注意：v4 的三项改动是在 2019–2026 上多轮挑选出来的（`docs/PROPOSAL_intraday_vol_entry_r3.md` §5–8），相对 v3 的组合 OOS ΔSR +0.145 [−0.12, +0.39]，未通过预注册判定；建议冻结系数做前向影子运行后再决定是否替换。
+
+## Tearsheet v5（2026-10，描述性）
+`studies/tearsheet_v5.py` → `outputs/figs/tearsheet_v5.png`, `outputs/tables/tearsheet_v5_{metrics,periods,steps,yearly}.csv`。
+v5 = v4 + 三处组合层修改（运行前写定，`docs/PROPOSAL_noise_core_dd.md` §6）：
+1. **买力上限**：每天开盘前，最坏情形占用（核心仓权重 + Sleeve 敞口 × max(k) / 3，单位 CAPITAL_BASE）> 2.57（= 0.85 × 买力 $1,513,400 / $500,000）时，两条腿等比例缩小。v4 不加上限时最坏占用最高 4.17，11% 的日子超过 2.57。
+2. **核心仓不交易带**：执行权重与目标偏离 ≥ 0.10 才调整（会突破上限时强制调整）。
+3. **等风险换配比 ρ = 1.5（固定）**：组合 = c × (核心仓 + 1.5 × Sleeve)，c 使过去 252 日波动等于 v4。
+| 组合 | dev 19–22 Sharpe / MDD | test 23–26 Sharpe / MDD | 全期 Sharpe / CAGR / MDD |
+|---|---|---|---|
+| ① v4 | 1.67 / −15.9% | 2.59 / −11.8% | 2.12 / 53.1% / −15.9% |
+| **① v5** | **1.72 / −16.8%** | **2.87 / −9.7%** | **2.26 / 57.1% / −16.8%** |
+| ② v4 | 1.82 / −15.7% | 2.41 / −11.5% | 2.11 / 51.2% / −15.7% |
+| **② v5** | **1.95 / −15.5%** | **2.71 / −9.3%** | **2.31 / 56.4% / −15.5%** |
+① v5 平均核心仓权重 0.77（v4 0.93）、Sleeve 乘数 1.26；最坏占用最高 2.57。注意：v4 与 v5 的改动都是多轮研究后选定的，未经前向验证；建议先前向影子运行。
+记账修正(见 `docs/REVIEW_2026-10.md` §8):v5 的买力缩放用了当日 10:00 之后才有的 k,并且 15:40 提前平仓没有计入主动出场半价差。修正后 ① v5 的 OOS 2021–26 Sharpe 从 2.20 降到 2.17(区间含 0),上表保持原口径。

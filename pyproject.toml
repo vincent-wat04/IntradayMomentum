@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantkit"
+version = "0.1.0"
+description = "Research infrastructure for the QQQ core + noise-area Sleeve project"
+requires-python = ">=3.10"
+dependencies = ["pandas>=2.0", "numpy>=1.24", "scipy>=1.10", "statsmodels>=0.14", "pyarrow>=12", "requests>=2.28", "yfinance>=0.2"]
+
+[project.optional-dependencies]
+moomoo = ["moomoo-api"]
+
+[tool.setuptools]
+packages = ["quantkit", "quantkit.data", "quantkit.stats", "quantkit.backtest", "quantkit.execution"]
